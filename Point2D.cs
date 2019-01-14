@@ -6,43 +6,89 @@ using System.Data.SqlTypes;
 using Microsoft.SqlServer.Server;
 using System.Threading.Tasks;
 
-class Point2D
+[Serializable]
+[Microsoft.SqlServer.Server.SqlUserDefinedType(Format.Native,
+ IsByteOrdered = true, ValidationMethodName = "SprawdzPunkt")]
+class Point2D : INullable
 {
-    /*********************************************
+    /********************************************
     * Private variables
     *********************************************/
     //Two coordinates of the point
-    private SqlDouble x;
-    private SqlDouble y;
+    private bool is_Null;
+    private SqlInt32 __x__;
+    private SqlInt32 __y__;
 
 
     /*********************************************
      * Public accessors
      *********************************************/
-    public SqlDouble X
+    public SqlInt32 X
     {
-        get => x;
+        get
+        { return this.__x__; }
+        set
+        {
+            SqlInt32 temp = __x__;
+            __x__ = value;
+            if (!checkPoint())
+            {
+                __x__ = temp;
+                throw new ArgumentException("Zła współrzędna X.");
+            }
+        }
     }
-    public SqlDouble Y
+    public SqlInt32 Y
     {
-        get => y;
+        get
+        { return this.__y__; }
+        set
+        {
+            SqlInt32 temp = __y__;
+            __y__ = value;
+            if (!checkPoint())
+            {
+                __y__ = temp;
+                throw new ArgumentException("Zła współrzędna X.");
+            }
+        }
+    }
+    public bool IsNull
+    {
+        get
+        { return (is_Null); }
     }
 
     /*********************************************
      * Public functions
      *********************************************/
-    // main constructor
-    public Point2D(SqlDouble x, SqlDouble y)
+
+    public static Point2D Null
     {
-        this.x = x;
-        this.y = y;
+        get
+        {
+            Point2D pt = new Point2D();
+            pt.is_Null = true;
+            return pt;
+        }
+    }
+
+    public Point2D()
+    {
+
+    }
+    // main constructor
+    public Point2D(SqlInt32 x, SqlInt32 y)
+    {
+        this.__x__ = x;
+        this.__y__ = y;
     }
 
     //secondary constructor with single input
-    public Point2D(SqlDouble coor)
+    public Point2D(SqlInt32 coor)
     {
-        x = coor;
-        y = coor;
+        __x__ = coor;
+        __y__ = coor;
     }
 
     //secondary constructor with single input
@@ -50,28 +96,80 @@ class Point2D
     {
         string[] strcords = coords.ToString().Split(',');
 
-        x = SqlDouble.Parse(strcords[0]);
-        y = SqlDouble.Parse(strcords[1]);
+        __x__ = SqlInt32.Parse(strcords[0]);
+        __y__ = SqlInt32.Parse(strcords[1]);
     }
 
-    //get distance between two points
-    public static SqlDouble getDistance(Point2D p1, Point2D p2)
+
+    // Odległość od 0,0.
+    [SqlMethod(OnNullCall = false)]
+    public SqlDouble Distance()
     {
-        return Math.Sqrt(Math.Pow((double)(p2.Y-p1.Y), 2)+Math.Pow((double)(p2.X-p1.X), 2));
+        return DistanceBetween(0, 0);
+    }
+
+    // Odległość od wskazanego punktu
+    [SqlMethod(OnNullCall = false)]
+    public SqlDouble DistanceFrom(Point2D pFrom)
+    {
+        return DistanceBetween(pFrom.X, pFrom.Y);
+    }
+
+    // Odległość od wskazanego punktu.
+    [SqlMethod(OnNullCall = false)]
+    public SqlDouble DistanceBetween(SqlInt32 iX, SqlInt32 iY)
+    {
+        return Math.Sqrt(Math.Pow((iX - __x__).Value, 2.0) + Math.Pow((iY - __y__).Value, 2.0));
     }
 
     /*********************************************
      * Private utility functions
      *********************************************/
-
+    // metoda walidująca współrzędne X Y
+    private bool checkPoint()
+    {
+        if ((__x__ >= 0) && (__y__ >= 0))
+        {
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
     /*********************************************
      * Override functions
      *********************************************/
-     // Use StringBuilder to provide string representation of UDT.  
+
+    [SqlMethod(OnNullCall = false)]
+    public static Point2D Parse(SqlString s)
+    {
+        if (s.IsNull)
+            return Null;
+        Point2D pt = new Point2D();
+        string[] xy = s.Value.Split(",".ToCharArray());
+        pt.X = Int32.Parse(xy[0]);
+        pt.Y = Int32.Parse(xy[1]);
+
+        if (!pt.checkPoint())
+            throw new ArgumentException("Invalid XY coordinate values.");
+        return pt;
+    }
+
+    // Use StringBuilder to provide string representation of UDT.  
     public override string ToString()
     {
-        return "("+X+';'+Y+") ";
+        if (this.IsNull)
+            return "NULL";
+        else
+        {
+            StringBuilder builder = new StringBuilder();
+            builder.Append(__x__);
+            builder.Append(",");
+            builder.Append(__y__);
+            return builder.ToString();
+        }
     }
 }
 

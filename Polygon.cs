@@ -9,11 +9,14 @@ using System.Collections.Generic;
 [Microsoft.SqlServer.Server.SqlUserDefinedType(Format.Native,
     IsByteOrdered = true,
     ValidationMethodName = "ValidatePoint")]
-public class Polygon
+public class Polygon : INullable
 {
     /*********************************************
      * Private variables
      *********************************************/
+
+    public bool isNull;
+
     //The number of lines of the shape
     private SqlInt32 lines;
 
@@ -27,9 +30,30 @@ public class Polygon
     {
         get => lines;
     }
+    public bool IsNull
+    {
+        get => isNull;
+    }
+
+    public static Polygon Null
+    {
+        get
+        {
+            Polygon poly = new Polygon();
+            poly.isNull = true;
+            return poly;
+        }
+    }
+
     /*********************************************
      * Public functions
      *********************************************/
+
+    public Polygon()
+    {
+
+    }
+
     //default constructor
     public Polygon(SqlString coordinates)
     {
@@ -42,6 +66,19 @@ public class Polygon
         }
     }
 
+    [SqlMethod(OnNullCall = false)]
+    public static Polygon Parse(SqlString s)
+    {
+        if (s.IsNull)
+            return Null;
+        Polygon pt = new Polygon();
+        string[] coordinates = s.Value.Split(';');
+        foreach (string coord in coordinates)
+        {
+            pt.points.Add(Point2D.Parse(coord));
+        }
+        return pt;
+    }
 
     /*********************************************
      * Private utility functions
@@ -68,7 +105,7 @@ public class Polygon
         SqlDouble circuit = 0.0;
         for (int i = 1; i<lines; i++)
         {
-            circuit +=Point2D.getDistance(points[i-1], points[i]);
+            circuit += points[i - 1].DistanceFrom(points[i]);
         }
         return circuit;
     }
