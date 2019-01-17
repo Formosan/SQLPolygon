@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 [Serializable]
 [Microsoft.SqlServer.Server.SqlUserDefinedType(Format.Native,
  IsByteOrdered = true, ValidationMethodName = "SprawdzPunkt")]
-class Point2D : INullable
+public class Point2D : INullable
 {
     /********************************************
     * Private variables
@@ -138,6 +138,12 @@ class Point2D : INullable
         }
     }
 
+    //check if point pq intersects line between p1 and p2
+    public bool Intersect(Point2D p1, Point2D p2)
+    {
+        return (p1.DistanceFrom(p2) == DistanceFrom(p1) + DistanceFrom(p2)).Value;
+    }
+
     /*********************************************
      * Override functions
      *********************************************/
@@ -148,7 +154,7 @@ class Point2D : INullable
         if (s.IsNull)
             return Null;
         Point2D pt = new Point2D();
-        string[] xy = s.Value.Split(",".ToCharArray());
+        string[] xy = s.Value.Split(" ".ToCharArray());
         pt.X = Int32.Parse(xy[0]);
         pt.Y = Int32.Parse(xy[1]);
 

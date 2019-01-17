@@ -72,7 +72,7 @@ public class Polygon : INullable
         if (s.IsNull)
             return Null;
         Polygon pt = new Polygon();
-        string[] coordinates = s.Value.Split(';');
+        string[] coordinates = s.Value.Split(',');
         foreach (string coord in coordinates)
         {
             pt.points.Add(Point2D.Parse(coord));
@@ -80,35 +80,114 @@ public class Polygon : INullable
         return pt;
     }
 
-    /*********************************************
-     * Private utility functions
-     *********************************************/
     //field
-    public SqlDouble getField()
+    [SqlMethod(OnNullCall = false)]
+    public SqlDouble GetArea()
     {
-          // Initialze area 
-        SqlDouble area = 0.0; 
-  
+        // Initialze area 
+        SqlDouble area = 0.0;
+
         // Calculate value of shoelace formula 
-        int j = (int)lines - 1;
+        int j = lines.Value - 1;
 
         for (int i = 0; i < lines; i++)
         {
             area += (points[j].X + points[i].X) * (points[j].Y - points[i].Y);
         }
-            return area;
+        return area;
     }
 
     //Circuit
-    public SqlDouble getCircuit()
+    [SqlMethod(OnNullCall = false)]
+    public SqlDouble GetCircuit()
     {
         SqlDouble circuit = 0.0;
-        for (int i = 1; i<lines; i++)
+        for (int i = 1; i < lines; i++)
         {
             circuit += points[i - 1].DistanceFrom(points[i]);
         }
         return circuit;
     }
+
+    //Circuit
+    [SqlMethod(OnNullCall = false)]
+    public Point2D GetCenter()
+    {
+        int x=0, y=0;
+        SqlDouble area = GetArea();
+        for(int i = 0; i < lines.Value-1; i++)
+        {
+            x += ((points[i].X + points[i + 1].X) * (points[i].X*points[i+1].Y - points[i+1].X * points[i].Y)).Value;
+            y += ((points[i].Y + points[i + 1].Y) * (points[i].X * points[i + 1].Y - points[i + 1].X * points[i].Y)).Value;
+        }
+        
+        return new Point2D(x, y);
+    }
+
+
+    [SqlMethod(OnNullCall = false)]
+    public Polygon OR(Polygon p2)
+    {
+        return Null;
+    }
+
+    [SqlMethod(OnNullCall = false)]
+    public Polygon AND(Polygon p2)
+    {
+        return Null;
+    }
+
+    [SqlMethod(OnNullCall = false)]
+    public Polygon NOT(Polygon p2)
+    {
+        Polygon result = new Polygon();
+
+
+        return result;
+    }
+
+    [SqlMethod(OnNullCall = false)]
+    public Polygon XOR(Polygon p2)
+    {
+        return Null;
+    }
+
+    /*********************************************
+     * Private utility functions
+     *********************************************/
+
+    // check if point intersects a polygon
+    private bool InstersectPoly(Point2D pq)
+    {
+        Point2D tp = new Point2D(pq.X, pq.Y);
+        bool result = false;
+        //get range to check
+        int xmax=0, xmin=0;
+        foreach(Point2D p in points)
+        {
+            if (p.X.Value > xmax)
+                xmax = p.X.Value;
+        }
+
+        int intersections = 0;
+        for (xmin=0; xmin<=xmax; xmin++)
+        {
+            for(int i = 1; i<lines; i++)
+            {
+                if(tp.Intersect(points[i], points[i-1]))
+                {
+                    intersections++;
+                    break;
+                }
+
+            }
+            tp.X=tp.X+1;
+        }
+        if (intersections % 2 == 0)
+            result = true;
+        return result;
+    }
+
 
     /*********************************************
      * Override functions
