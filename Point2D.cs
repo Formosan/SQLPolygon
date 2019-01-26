@@ -77,11 +77,21 @@ public class Point2D : INullable
     {
 
     }
+
+    public Point2D(Point2D point)
+    {
+        __x__ = point.X;
+        __y__ = point.Y;
+        is_Null = false;
+
+    }
+
     // main constructor
     public Point2D(SqlInt32 x, SqlInt32 y)
     {
         this.__x__ = x;
         this.__y__ = y;
+        is_Null = false;
     }
 
     //secondary constructor with single input
@@ -89,15 +99,24 @@ public class Point2D : INullable
     {
         __x__ = coor;
         __y__ = coor;
+        is_Null = false;
     }
 
     //secondary constructor with single input
     public Point2D(SqlString coords)
     {
-        string[] strcords = coords.ToString().Split(',');
-
+        string[] strcords = coords.ToString().Split(' ');
+        List<string> strlist = new List<string>();
+        for(int i = 0; i<strcords.Length; i++)
+        {
+            if(strcords[i]!="")
+                strlist.Add(strcords[i]);
+        }
+        strcords = strlist.ToArray();
+       
         __x__ = SqlInt32.Parse(strcords[0]);
         __y__ = SqlInt32.Parse(strcords[1]);
+        is_Null = false;
     }
 
 
@@ -172,10 +191,12 @@ public class Point2D : INullable
         {
             StringBuilder builder = new StringBuilder();
             builder.Append(__x__);
-            builder.Append(",");
+            builder.Append(" ");
             builder.Append(__y__);
             return builder.ToString();
         }
     }
 }
+
+
 
